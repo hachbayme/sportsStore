@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE `product` ADD COLUMN `colors` JSON NOT NULL,
+    ADD COLUMN `inStock` BOOLEAN NOT NULL DEFAULT true,
+    ADD COLUMN `sizes` JSON NOT NULL;
