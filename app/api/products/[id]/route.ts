@@ -1,126 +1,111 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@/utils/supabase/server";
 
-// GET /api/products/[id] - جلب منتج محدد
-// GET /api/products/[id] - جلب منتج محدد
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  // try {
-  //   const { searchParams } = new URL(request.url)
-  //   const isAdmin = searchParams.get('admin') === 'true'
+  const supabase = await createClient();
+  const { id } = params;
 
-  //   const product = await prisma.product.findUnique({
-  //     where: { 
-  //       id: parseInt(params.id),
-  //       ...(!isAdmin && { inStock: true }) // فقط للعملاء
-  //     }
-  //   })
+  const { data, error } = await supabase
+    .from("product")
+    .select("*")
+    .eq("id", id)
+    .single();
 
-  //   if (!product) {
-  //     return NextResponse.json(
-  //       { error: 'Product not found' },
-  //       { status: 404 }
-  //     )
-  //   }
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 404 });
+  }
 
-  //   return NextResponse.json(product)
-  // } catch (error) {
-  //   console.error('Error fetching product:', error)
-  //   return NextResponse.json(
-  //     { error: 'Failed to fetch product' },
-  //     { status: 500 }
-  //   )
-  // }
-    console.log('ddd')
-
+  return NextResponse.json(data);
 }
 
-// PUT /api/products/[id] - تحديث منتج موجود
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
-  // try {
-  //   const body = await request.json()
-    
-  //   // التحقق من وجود المنتج أولاً
-  //   const existingProduct = await prisma.product.findUnique({
-  //     where: { id: parseInt(params.id) }
-  //   })
+  const supabase = await createClient();
+  const { id } = context.params;
 
-  //   if (!existingProduct) {
-  //     return NextResponse.json(
-  //       { error: 'Product not found' },
-  //       { status: 404 }
-  //     )
-  //   }
+  try {
+    const body = await request.json();
 
-  //   const product = await prisma.product.update({
-  //     where: { id: parseInt(params.id) },
-  //     data: {
-  //       ...(body.name && { name: body.name }),
-  //       ...(body.description && { description: body.description }),
-  //       ...(body.price && { price: parseFloat(body.price) }),
-  //       ...(body.rating && { rating: parseFloat(body.rating) }),
-  //       ...(body.brand && { brand: body.brand }),
-  //       ...(body.category && { category: body.category }),
-  //       ...(body.image !== undefined && { image: body.image }),
-  //       ...(body.inStock !== undefined && { inStock: body.inStock }),
-  //       ...(body.sizes && { sizes: body.sizes }),
-  //       ...(body.colors && { colors: body.colors })
-  //     }
-  //   })
+    const { data: existing, error: fetchError } = await supabase
+      .from("product")
+      .select("*")
+      .eq("id", id)
+      .single();
 
-  //   return NextResponse.json(product)
-  // } catch (error) {
-  //   console.error('Error updating product:', error)
-  //   return NextResponse.json(
-  //     { error: 'Failed to update product' },
-  //     { status: 500 }
-  //   )
-  // }
-    console.log('ddd')
+    if (fetchError || !existing) {
+      return NextResponse.json({ error: "Product not found" }, { status: 404 });
+    }
 
+    const updates = {
+      ...(body.name && { name: body.name }),
+      ...(body.description && { description: body.description }),
+      ...(body.price && { price: parseFloat(body.price) }),
+      ...(body.rating && { rating: parseFloat(body.rating) }),
+      ...(body.brand && { brand: body.brand }),
+      ...(body.category && { category: body.category }),
+      ...(body.image !== undefined && { image: body.image }),
+      ...(body.inStock !== undefined && { instock: body.inStock }),
+      ...(body.sizes && { sizes: body.sizes }),
+      ...(body.colors && { colors: body.colors }),
+      updated_at: new Date(),
+    };
+
+    const { data, error } = await supabase
+      .from("product")
+      .update(updates)
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json(data);
+  } catch (error) {
+    return NextResponse.json(
+      { error: "Failed to update product" },
+      { status: 500 }
+    );
+  }
 }
-
-// DELETE /api/products/[id] - حذف منتج
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } } // تغيير هنا
+  context: { params: { id: string } }
 ) {
-  // try {
-  //   const { id } = params // تغيير هنا
-  //   console.log('Deleting product ID:', id)
-    
-  //   // التحقق من وجود المنتج أولاً
-  //   const existingProduct = await prisma.product.findUnique({
-  //     where: { id: parseInt(id) }
-  //   })
+  const supabase = await createClient();
+  const { id } = context.params;
 
-  //   if (!existingProduct) {
-  //     return NextResponse.json(
-  //       { error: 'Product not found' },
-  //       { status: 404 }
-  //     )
-  //   }
+  try {
+    const { data: existing, error: fetchError } = await supabase
+      .from("product")
+      .select("id")
+      .eq("id", id)
+      .single();
 
-  //   await prisma.product.delete({
-  //     where: { id: parseInt(id) }
-  //   })
+    if (fetchError || !existing) {
+      return NextResponse.json({ error: "Product not found" }, { status: 404 });
+    }
 
-  //   return NextResponse.json(
-  //     { message: 'Product deleted successfully' },
-  //     { status: 200 }
-  //   )
-  // } catch (error) {
-  //   console.error('Error deleting product:', error)
-  //   return NextResponse.json(
-  //     { error: 'Failed to delete product' },
-  //     { status: 500 }
-  //   )
-  // }
-    console.log('ddd')
+    const { error } = await supabase.from("product").delete().eq("id", id);
 
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json(
+      { message: "Product deleted successfully" },
+      { status: 200 }
+    );
+  } catch (error) {
+    return NextResponse.json(
+      { error: "Failed to delete product" },
+      { status: 500 }
+    );
+  }
 }
