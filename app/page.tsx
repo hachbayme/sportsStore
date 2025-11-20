@@ -241,3 +241,11 @@ export default function HomePage() {
     </MainLayout>
   )
 }
+// import { createClient } from '@/utils/supabase/server';
+
+// export default async function Instruments() {
+//   const supabase = await createClient();
+//   const { data: product } = await supabase.from("product").select();
+
+//   return <pre>{JSON.stringify(product, null, 2)}</pre>
+// }

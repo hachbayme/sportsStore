@@ -1,94 +1,99 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@/utils/supabase/server";
 
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url)
-    const hasSearchParams = searchParams.toString().length > 0
-    const isAdmin = searchParams.get('admin') === 'true' 
+    const supabase = await createClient();
+    const { searchParams } = new URL(request.url);
 
-    
-    if (!hasSearchParams) {
-      const products = await prisma.product.findMany({
-        where: isAdmin ? {} : { inStock: true }, 
-        orderBy: { createdAt: 'desc' }
-      })
-      return NextResponse.json(products)
+    const isAdmin = searchParams.get("admin") === "true";
+    const category = searchParams.get("category") || undefined;
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
+    const limit = Math.max(1, parseInt(searchParams.get("limit") || "20"));
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+
+    // جلب كل البيانات أولاً
+    let query = supabase.from("product").select("*").order("createdat", { ascending: false });
+
+    if (!isAdmin) query = query.eq("instock", true);
+    if (category) query = query.eq("category", category);
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error("Supabase select error:", error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // إذا كانت هناك معاملات بحث، إرجاع النتيجة مع الباجينيشن
-    const category = searchParams.get('category')
-    const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '999999999')
-    const skip = (page - 1) * limit
-
-    const where = {
-      ...(!isAdmin && { inStock: true }), // فقط للعملاء
-      ...(category && { category })
-    }
-
-    const products = await prisma.product.findMany({
-      where,
-      skip,
-      take: limit,
-      orderBy: { createdAt: 'desc' }
-    })
-
-    const total = await prisma.product.count({ where })
+    // pagination يدوي
+    const paginatedData = data?.slice(from, to + 1) || [];
 
     return NextResponse.json({
-      products,
+      products: paginatedData,
       pagination: {
         page,
         limit,
-        total,
-        pages: Math.ceil(total / limit)
-      }
-    })
-  } catch (error) {
-    console.error('Error fetching products:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch products' },
-      { status: 500 }
-    )
+        total: data?.length || 0,
+        pages: Math.ceil((data?.length || 0) / limit),
+      },
+    });
+  } catch (err: any) {
+    console.error("GET /api/products failed:", err);
+    return NextResponse.json({ error: err?.message ?? "Unknown error" }, { status: 500 });
   }
 }
 
-// POST /api/products - إنشاء منتج جديد
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    
-    const { name, description, price, brand, category, image, sizes, colors } = body
+    const supabase = await createClient();
+    const body = await request.json();
+    const { name, description, price, brand, category, image, sizes, colors } = body ?? {};
 
-    // التحقق من الحقول المطلوبة
     if (!name || !description || !price || !brand || !category) {
-      return NextResponse.json(
-        { error: 'جميع الحقول مطلوبة ما عدا الصورة' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: "جميع الحقول مطلوبة ما عدا الصورة" }, { status: 400 });
     }
 
-    const product = await prisma.product.create({
-      data: {
-        name,
-        description,
-        price: parseFloat(price),
-        brand,
-        category,
-        image: image || null,
-        sizes: sizes || [],
-        colors: colors || []
-      }
-    })
+    const payload = {
+      name,
+      description,
+      price: typeof price === "string" ? parseFloat(price) : price,
+      brand,
+      category,
+      image: image || null,
+      sizes: sizes || [],
+      colors: colors || [],
+      createdat: new Date().toISOString(),
+    };
 
-    return NextResponse.json(product, { status: 201 })
-  } catch (error) {
-    console.error('Error creating product:', error)
-    return NextResponse.json(
-      { error: 'Failed to create product' },
-      { status: 500 }
-    )
+    const { data, error } = await supabase.from("product").insert([payload]).select("*").single();
+
+    if (error) {
+      console.error("Supabase insert error:", error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json(data, { status: 201 });
+  } catch (err: any) {
+    console.error("POST /api/products failed:", err);
+    return NextResponse.json({ error: err?.message ?? "Unknown error" }, { status: 500 });
   }
 }
+
+
+
+// import { createClient } from '@/utils/supabase/server'
+
+// export async function GET() {
+//   const supabase = await createClient()
+
+//   const { data, error } = await supabase
+//     .from("product")
+//     .select("*")
+
+//   if (error) {
+//     return Response.json({ error: error.message }, { status: 500 })
+//   }
+
+//   return Response.json(data)
+// }
