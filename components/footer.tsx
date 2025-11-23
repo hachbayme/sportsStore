@@ -51,10 +51,7 @@ export default function Footer() {
             </p>
             
             <div className="flex items-center gap-6">
-              <div className="flex items-center gap-2 text-gray-400 text-sm">
-                <Lock className="h-4 w-4 text-amber-400" />
-                <span>{"Paiement sécurisé"}</span>
-              </div>
+              
               <div className="flex items-center gap-2 text-gray-400 text-sm">
                 <Shield className="h-4 w-4 text-amber-400" />
                 <span>{"Privacy protected"}</span>

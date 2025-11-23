@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Search, Package, Plus, Edit, Trash2, Image as ImageIcon, XCircle, Box, DollarSign, TrendingUp, Upload } from "lucide-react"
 import { toast } from "sonner"
 import { supabase } from "@/lib/supabaseClient"
+import {uploadImage} from "@/lib/uploadImage";
 
 interface Product {
   id: number
@@ -102,28 +103,28 @@ export default function ProductsPage() {
   }
 
   // Upload image
-  const uploadImage = async (file: File): Promise<string> => {
-    setUploadingImage(true)
-    try {
-      const formData = new FormData()
-      formData.append("file", file)
+  // const uploadImage = async (file: File): Promise<string> => {
+  //   setUploadingImage(true)
+  //   try {
+  //     const formData = new FormData()
+  //     formData.append("file", file)
 
-      const response = await fetch("/api/upload", {
-        method: "POST",
-        body: formData
-      })
+  //     const response = await fetch("/api/upload", {
+  //       method: "POST",
+  //       body: formData
+  //     })
 
-      if (!response.ok) throw new Error("Échec du téléchargement de l'image")
+  //     if (!response.ok) throw new Error("Échec du téléchargement de l'image")
 
-      const data = await response.json()
-      return data.url
-    } catch (error) {
-      console.error("Error uploading image:", error)
-      throw new Error("Échec du téléchargement de l'image")
-    } finally {
-      setUploadingImage(false)
-    }
-  }
+  //     const data = await response.json()
+  //     return data.url
+  //   } catch (error) {
+  //     console.error("Error uploading image:", error)
+  //     throw new Error("Échec du téléchargement de l'image")
+  //   } finally {
+  //     setUploadingImage(false)
+  //   }
+  // }
 
   // Ajouter ou modifier produit via Supabase
   const handleProductSubmit = async (e: React.FormEvent) => {
