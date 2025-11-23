@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
     const isAdmin = searchParams.get("admin") === "true";
     const category = searchParams.get("category") || undefined;
     const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
-    const limit = Math.max(1, parseInt(searchParams.get("limit") || "20"));
+    const limit = Math.max(1, parseInt(searchParams.get("limit") || "9999999999"));
     const from = (page - 1) * limit;
     const to = from + limit - 1;
 
