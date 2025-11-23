@@ -5,13 +5,12 @@ import { useState, useEffect, useMemo } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import ProductCard from "@/components/product-card"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Slider } from "@/components/ui/slider"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
-import { Search, Filter, X, Grid, List, ChevronDown, ChevronUp } from "lucide-react"
+import { Filter, X, Grid, List, ChevronDown, ChevronUp } from "lucide-react"
 import type { Product } from "@/types/product"
 import { cn } from "@/lib/utils"
 import MainLayout from "@/components/main-layout"
@@ -333,8 +332,8 @@ const filteredProducts = useMemo(() => {
                       className="mt-2"
                     />
                     <div className="flex justify-between text-sm text-gray-400">
-                      <span>0 ر.س</span>
-                      <span>{maxPrice} ر.س</span>
+                      <span>0  MAD</span>
+                      <span>{maxPrice}  MAD</span>
                     </div>
                   </div>
 

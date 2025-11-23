@@ -8,17 +8,18 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Search, Package, Truck, CheckCircle, Clock, XCircle, Eye, Download, Trash2 } from "lucide-react"
 import { toast } from "sonner"
+import { supabase } from "@/lib/supabaseClient";
 
 interface Order {
   id: number
-  customerName: string
-  customerPhone: string
-  customerEmail: string
-  customerAddress: string
+  customername: string
+  customerphone: string
+  customeremail?: string
+  customeraddress: string
   total: number
   status: string
-  createdAt: string
-  items: OrderItem[]
+  createdat: string
+  items?: OrderItem[]
 }
 
 interface OrderItem {
@@ -79,39 +80,58 @@ export default function OrdersPage() {
   }
 
   const confirmDelete = (order: Order) => {
-    if (window.confirm(`Êtes-vous sûr de vouloir supprimer la commande #${order.id} pour le client ${order.customerName} ?`)) {
+    if (window.confirm(`Êtes-vous sûr de vouloir supprimer la commande #${order.id} pour le client ${order.customername} ?`)) {
       deleteOrder(order.id)
     }
   }
 
-  const fetchOrders = async () => {
-    try {
-      setLoading(true)
-      const response = await fetch('/api/orders')
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-      
-      const data = await response.json()
-      if (data.success) {
-        setOrders(data.orders)
-      }
-    } catch (error) {
-      console.error('Error fetching orders:', error)
-      toast.error("Erreur lors du chargement des commandes")
-    } finally {
-      setLoading(false)
-    }
+
+
+const fetchOrders = async () => {
+  setLoading(true);
+
+  try {
+    // 1️⃣ جلب الطلبات
+    const { data: ordersData, error: ordersError } = await supabase
+      .from("order")
+      .select("*")
+      .order("createdat", { ascending: false });
+
+    if (ordersError) throw ordersError;
+
+    // 2️⃣ جلب العناصر المرتبطة بالطلبات
+    const { data: itemsData, error: itemsError } = await supabase
+      .from("orderitem")
+      .select("*");
+
+    if (itemsError) throw itemsError;
+
+    // 3️⃣ ربط كل طلب بعناصره
+    const ordersWithItems = ordersData.map(order => ({
+      ...order,
+      items: itemsData.filter(item => item.orderid === order.id)
+    }));
+
+    // 4️⃣ تحديث الحالة
+    setOrders(ordersWithItems);
+
+  } catch (err) {
+    console.error(err);
+    toast.error("Erreur lors du chargement des commandes");
+  } finally {
+    setLoading(false);
   }
+};
+
+
 
   const filterOrders = () => {
     let filtered = orders
 
     if (searchTerm) {
       filtered = filtered.filter(order =>
-        order.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        order.customerPhone.includes(searchTerm) ||
+        order.customername.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        order.customerphone.includes(searchTerm) ||
         order.id.toString().includes(searchTerm)
       )
     }
@@ -283,7 +303,7 @@ export default function OrdersPage() {
                       <div>
                         <CardTitle className="text-lg text-white">Commande #{order.id}</CardTitle>
                         <CardDescription className="text-gray-400">
-                          {new Date(order.createdAt).toLocaleDateString('fr-FR', {
+                          {new Date(order.createdat).toLocaleDateString('fr-FR', {
                             year: 'numeric',
                             month: 'long',
                             day: 'numeric',
@@ -317,19 +337,19 @@ export default function OrdersPage() {
                       <div className="space-y-2 text-sm">
                         <div className="flex justify-between">
                           <span className="text-gray-400">Nom:</span>
-                          <span className="font-medium text-white">{order.customerName}</span>
+                          <span className="font-medium text-white">{order.customername}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-gray-400">Téléphone:</span>
-                          <span className="font-medium text-white">{order.customerPhone}</span>
+                          <span className="font-medium text-white">{order.customerphone}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-gray-400">Email:</span>
-                          <span className="font-medium text-white">{order.customerEmail || "Non disponible"}</span>
+                          <span className="font-medium text-white">{order.customeremail || "Non disponible"}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-gray-400">Adresse:</span>
-                          <span className="font-medium text-white text-left max-w-[200px]">{order.customerAddress}</span>
+                          <span className="font-medium text-white text-left max-w-[200px]">{order.customeraddress}</span>
                         </div>
                       </div>
                     </div>
