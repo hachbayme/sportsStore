@@ -336,9 +336,9 @@ export default function OrdersPage() {
 
                     {/* Order Items */}
                     <div className="space-y-3">
-                      <h4 className="font-semibold text-amber-400">Produits ({order.items.length})</h4>
+                      <h4 className="font-semibold text-amber-400">Produits ({order.items?.length || 0})</h4>
                       <div className="space-y-2 max-h-40 overflow-y-auto">
-                        {order.items.map((item) => (
+                       {order.items?.map((item) => (
                           <div key={item.id} className="flex justify-between items-start p-2 bg-gray-700/50 rounded-lg">
                             <div className="flex-1">
                               <p className="font-medium text-sm text-white">{item.productName}</p>

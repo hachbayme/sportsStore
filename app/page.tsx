@@ -102,7 +102,7 @@ export default function HomePage() {
                 </div>
                 <h3 className="text-xl font-semibold mb-2 text-white">{"Livraison rapide"}</h3>
                 <p className="text-gray-400">
-                  { "Livraison gratuite pour les commandes supérieures à 200 SAR"}
+                  { "Livraison gratuite pour les commandes supérieures à 200 MAD"}
                 </p>
               </div>
               

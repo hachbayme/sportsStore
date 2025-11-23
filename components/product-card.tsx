@@ -112,11 +112,11 @@ export default function ProductCard({ product, viewMode, className }: ProductCar
   const renderPrice = useMemo(() => (
     <div className="flex items-center gap-2">
       <span className="text-lg font-bold text-amber-400">
-        {finalPrice.toFixed(2)} ر.س
+        {finalPrice.toFixed(2)} MAD
       </span>
       {product.originalPrice && product.originalPrice > finalPrice && (
         <span className="text-sm text-gray-400 line-through">
-          {product.originalPrice.toFixed(2)} ر.س
+          {product.originalPrice.toFixed(2)} MAD
         </span>
       )}
     </div>
@@ -197,7 +197,7 @@ export default function ProductCard({ product, viewMode, className }: ProductCar
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
                 <Button 
-                  disabled={!product.inStock}
+                  // disabled={!product.inStock}
                   className="bg-amber-500 hover:bg-amber-600 text-black flex-1 transition-all duration-300 hover:scale-105"
                 >
                   <ShoppingCart className="h-4 w-4 ml-2" />
@@ -292,7 +292,7 @@ export default function ProductCard({ product, viewMode, className }: ProductCar
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button 
-              disabled={!product.inStock}
+              // disabled={!product.inStock}
               className="w-full bg-amber-500 hover:bg-amber-600 text-black group-hover:scale-105 transition-all duration-300"
             >
               <ShoppingCart className="h-4 w-4 ml-2" />

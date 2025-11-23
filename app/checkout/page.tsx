@@ -201,14 +201,14 @@ export default function CheckoutPage() {
                           <p className="text-xs text-gray-400 mt-1">Quantité: {item.quantity}</p>
                         </div>
                       </div>
-                      <p className="font-medium text-amber-400">{item.price * item.quantity} SAR</p>
+                      <p className="font-medium text-amber-400">{item.price * item.quantity} MAD</p>
                     </div>
                   ))}
 
                   <div className="space-y-2 pt-4">
                     <div className="flex justify-between text-gray-300">
                       <span>Sous-total</span>
-                      <span>{getTotalPrice()} SAR</span>
+                      <span>{getTotalPrice()} MAD</span>
                     </div>
                     <div className="flex justify-between text-gray-300">
                       <span>Livraison</span>
@@ -216,7 +216,7 @@ export default function CheckoutPage() {
                     </div>
                     <div className="flex justify-between font-bold text-lg border-t border-gray-700 pt-2 text-amber-400">
                       <span>Total</span>
-                      <span>{getTotalPrice()} SAR</span>
+                      <span>{getTotalPrice()} MAD</span>
                     </div>
                   </div>
                 </div>
@@ -224,7 +224,7 @@ export default function CheckoutPage() {
             </Card>
 
             {/* Méthodes de paiement */}
-            <Card className="bg-gray-800 border-gray-700">
+            {/* <Card className="bg-gray-800 border-gray-700">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-white">
                   <CreditCard className="h-5 w-5 text-amber-400" />
@@ -248,7 +248,7 @@ export default function CheckoutPage() {
                   </div>
                 </div>
               </CardContent>
-            </Card>
+            </Card> */}
           </div>
         </div>
       </div>

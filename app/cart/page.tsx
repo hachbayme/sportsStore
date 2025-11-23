@@ -150,8 +150,8 @@ export default function CartPage() {
                           </Button>
                         </div>
                         <div className="text-left">
-                          <p className="font-bold text-lg text-amber-400">{item.price * item.quantity} SAR</p>
-                          {item.quantity > 1 && <p className="text-sm text-gray-400">{item.price} SAR par article</p>}
+                          <p className="font-bold text-lg text-amber-400">{item.price * item.quantity} MAD</p>
+                          {item.quantity > 1 && <p className="text-sm text-gray-400">{item.price} MAD par article</p>}
                         </div>
                       </div>
                     </div>
@@ -168,7 +168,7 @@ export default function CartPage() {
                 <div className="space-y-3 mb-6">
                   <div className="flex justify-between text-gray-300">
                     <span>Sous-total</span>
-                    <span>{getTotalPrice()} SAR</span>
+                    <span>{getTotalPrice()} MAD</span>
                   </div>
                   <div className="flex justify-between text-gray-300">
                     <span>Livraison</span>
@@ -177,7 +177,7 @@ export default function CartPage() {
                   <hr className="border-gray-700" />
                   <div className="flex justify-between font-bold text-lg text-amber-400">
                     <span>Total</span>
-                    <span>{getTotalPrice()} SAR</span>
+                    <span>{getTotalPrice()} MAD</span>
                   </div>
                 </div>
 
