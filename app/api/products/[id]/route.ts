@@ -52,7 +52,7 @@ export async function PUT(
       ...(body.inStock !== undefined && { instock: body.inStock }),
       ...(body.sizes && { sizes: body.sizes }),
       ...(body.colors && { colors: body.colors }),
-      updated_at: new Date(),
+      updatedat: new Date(),
     };
 
     const { data, error } = await supabase

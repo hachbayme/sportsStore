@@ -74,7 +74,7 @@ export default function OrdersPage() {
         toast.error("Erreur lors de la suppression")
       }
     } catch (error) {
-      console.error('Error deleting order:', error)
+      console.log('Error deleting order:', error)
       toast.error("Erreur lors de la suppression de la commande")
     }
   }
@@ -116,7 +116,7 @@ const fetchOrders = async () => {
     setOrders(ordersWithItems);
 
   } catch (err) {
-    console.error(err);
+    console.log(err);
     toast.error("Erreur lors du chargement des commandes");
   } finally {
     setLoading(false);
@@ -162,7 +162,7 @@ const fetchOrders = async () => {
         toast.error("Erreur lors de la mise à jour")
       }
     } catch (error) {
-      console.error('Error updating order:', error)
+      console.log('Error updating order:', error)
       toast.error("Erreur lors de la mise à jour du statut de la commande")
     }
   }
