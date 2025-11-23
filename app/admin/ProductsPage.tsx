@@ -10,8 +10,9 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, Package, Plus, Edit, Trash2, Image as ImageIcon, XCircle, Box, DollarSign, TrendingUp, Upload, FileImage } from "lucide-react"
+import { Search, Package, Plus, Edit, Trash2, Image as ImageIcon, XCircle, Box, DollarSign, TrendingUp, Upload } from "lucide-react"
 import { toast } from "sonner"
+import { supabase } from "@/lib/supabaseClient"
 
 interface Product {
   id: number
@@ -22,10 +23,10 @@ interface Product {
   brand: string
   category: string
   image: string | null
-  inStock: boolean
+  instock: boolean
   sizes: string[]
   colors: string[]
-  createdAt: string
+  createdat: string
 }
 
 export default function ProductsPage() {
@@ -39,35 +40,7 @@ export default function ProductsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [uploadingImage, setUploadingImage] = useState(false)
 
-  const fetchAPI = async (url: string, options: RequestInit = {}) => {
-    try {
-      const fullUrl = url.startsWith('http') ? url : `${window.location.origin}${url}`
-      
-      const response = await fetch(fullUrl, {
-        ...options,
-        headers: {
-          'Content-Type': 'application/json',
-          ...options.headers,
-        },
-      })
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-
-      const contentType = response.headers.get('content-type')
-      if (!contentType || !contentType.includes('application/json')) {
-        return null
-      }
-
-      return response.json()
-    } catch (error) {
-      console.error('Fetch API error:', error)
-      throw error
-    }
-  }
-  
-  // Modèle de produit
+  // Formulaire produit
   const [productForm, setProductForm] = useState({
     name: "",
     description: "",
@@ -75,7 +48,7 @@ export default function ProductsPage() {
     brand: "",
     category: "",
     image: "",
-    inStock: true,
+    instock: true,
     sizes: [] as string[],
     colors: [] as string[],
     newSize: "",
@@ -92,24 +65,17 @@ export default function ProductsPage() {
   }, [products, productSearchTerm, activeCategory])
 
   const fetchProducts = async () => {
+    setLoading(true)
     try {
-      setLoading(true)
-      const data = await fetchAPI('/api/products?admin=true')
-      
-      let productsArray: Product[] = []
-      
-      if (Array.isArray(data)) {
-        productsArray = data
-      } else if (data.products && Array.isArray(data.products)) {
-        productsArray = data.products
-      } else {
-        productsArray = []
-      }
-      
-      setProducts(productsArray)
-      
+      const { data, error } = await supabase
+        .from("product")
+        .select("*")
+        .order("createdat", { ascending: false })
+
+      if (error) throw error
+      setProducts(data as Product[])
     } catch (error) {
-      console.error('Error:', error)
+      console.error("Error fetching products:", error)
       toast.error(error instanceof Error ? error.message : "Erreur lors du chargement des produits")
     } finally {
       setLoading(false)
@@ -135,113 +101,101 @@ export default function ProductsPage() {
     setFilteredProducts(filtered)
   }
 
-  // Fonction pour télécharger l'image vers le serveur
+  // Upload image
   const uploadImage = async (file: File): Promise<string> => {
     setUploadingImage(true)
     try {
       const formData = new FormData()
-      formData.append('file', file)
-      
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
+      formData.append("file", file)
+
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData
       })
 
-      if (!response.ok) {
-        throw new Error('Échec du téléchargement de l\'image')
-      }
+      if (!response.ok) throw new Error("Échec du téléchargement de l'image")
 
       const data = await response.json()
       return data.url
     } catch (error) {
-      console.error('Error uploading image:', error)
-      throw new Error('Échec du téléchargement de l\'image')
+      console.error("Error uploading image:", error)
+      throw new Error("Échec du téléchargement de l'image")
     } finally {
       setUploadingImage(false)
     }
   }
 
+  // Ajouter ou modifier produit via Supabase
   const handleProductSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
     try {
       let imageUrl = productForm.image
-      
-      // S'il y a un fichier image téléchargé, téléchargez-le d'abord
       if (productForm.imageFile) {
         imageUrl = await uploadImage(productForm.imageFile)
       }
-      
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || ''
-      const url = editingProduct 
-        ? `${baseUrl}/api/products/${editingProduct.id}` 
-        : `${baseUrl}/api/products`
-      
-      const method = editingProduct ? 'PUT' : 'POST'
 
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: productForm.name,
-          description: productForm.description,
-          price: parseFloat(productForm.price.toString()),
-          brand: productForm.brand,
-          category: productForm.category,
-          image: imageUrl,
-          inStock: productForm.inStock,
-          sizes: productForm.sizes,
-          colors: productForm.colors
-        }),
-      })
+      if (editingProduct) {
+        // Mise à jour
+        const { error } = await supabase
+          .from("product")
+          .update({
+            name: productForm.name,
+            description: productForm.description,
+            price: productForm.price,
+            brand: productForm.brand,
+            category: productForm.category,
+            image: imageUrl,
+            instock: productForm.instock,
+            sizes: productForm.sizes,
+            colors: productForm.colors
+          })
+          .eq("id", editingProduct.id)
 
-      if (!response.ok) {
-        const errorText = await response.text()
-        throw new Error(`HTTP ${response.status}: ${errorText.substring(0, 100)}`)
-      }
-
-      const contentType = response.headers.get('content-type')
-      if (contentType && contentType.includes('application/json')) {
-        const result = await response.json()
-        toast.success(editingProduct ? "Produit mis à jour avec succès" : "Produit ajouté avec succès")
+        if (error) throw error
+        toast.success("Produit mis à jour avec succès")
       } else {
-        toast.success(editingProduct ? "Produit mis à jour avec succès" : "Produit ajouté avec succès")
+        // Ajout
+        const { error } = await supabase
+          .from("product")
+          .insert([{
+            name: productForm.name,
+            description: productForm.description,
+            price: productForm.price,
+            brand: productForm.brand,
+            category: productForm.category,
+            image: imageUrl,
+            instock: productForm.instock,
+            sizes: productForm.sizes,
+            colors: productForm.colors,
+            createdat: new Date().toISOString()
+          }])
+
+        if (error) throw error
+        toast.success("Produit ajouté avec succès")
       }
-      
+
       setIsProductDialogOpen(false)
       resetProductForm()
       fetchProducts()
     } catch (error) {
-      console.error('Error saving product:', error)
+      console.log("Error saving product:", error)
       toast.error(error instanceof Error ? error.message : "Erreur lors de la sauvegarde du produit")
     }
   }
 
   const deleteProduct = async (productId: number) => {
     if (!confirm("Êtes-vous sûr de vouloir supprimer ce produit ?")) return
-    
     try {
-      const response = await fetch(`/api/products/${productId}`, {
-        method: 'DELETE',
-      })
+      const { error } = await supabase
+        .from("product")
+        .delete()
+        .eq("id", productId)
 
-      if (!response.ok) {
-        const errorText = await response.text()
-        throw new Error(`HTTP ${response.status}: ${errorText.substring(0, 100)}`)
-      }
-
-      const result = await response.json()
-
-      if (response.status === 200) {
-        toast.success("Produit supprimé avec succès")
-        fetchProducts()
-      } else {
-        toast.error(result.error || "Erreur lors de la suppression")
-      }
+      if (error) throw error
+      toast.success("Produit supprimé avec succès")
+      fetchProducts()
     } catch (error) {
-      console.error('Error deleting product:', error)
+      console.error("Error deleting product:", error)
       toast.error(error instanceof Error ? error.message : "Erreur lors de la suppression du produit")
     }
   }
@@ -255,7 +209,7 @@ export default function ProductsPage() {
       brand: product.brand,
       category: product.category,
       image: product.image || "",
-      inStock: product.inStock,
+      instock: product.instock,
       sizes: product.sizes,
       colors: product.colors,
       newSize: "",
@@ -273,7 +227,7 @@ export default function ProductsPage() {
       brand: "",
       category: "",
       image: "",
-      inStock: true,
+      instock: true,
       sizes: [],
       colors: [],
       newSize: "",
@@ -286,56 +240,33 @@ export default function ProductsPage() {
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      // Vérifier le type de fichier
-      if (!file.type.startsWith('image/')) {
-        toast.error('Le fichier doit être une image')
+      if (!file.type.startsWith("image/")) {
+        toast.error("Le fichier doit être une image")
         return
       }
-      
-      // Vérifier la taille du fichier (5MB maximum)
       if (file.size > 5 * 1024 * 1024) {
-        toast.error('La taille de l\'image doit être inférieure à 5MB')
+        toast.error("La taille de l'image doit être inférieure à 5MB")
         return
       }
-      
-      setProductForm({
-        ...productForm,
-        imageFile: file
-      })
-      
-      // Afficher l'aperçu de l'image
+      setProductForm({ ...productForm, imageFile: file })
       const reader = new FileReader()
       reader.onload = (e) => {
-        setProductForm(prev => ({
-          ...prev,
-          image: e.target?.result as string
-        }))
+        setProductForm(prev => ({ ...prev, image: e.target?.result as string }))
       }
       reader.readAsDataURL(file)
     }
   }
 
   const removeUploadedImage = () => {
-    setProductForm({
-      ...productForm,
-      imageFile: null,
-      image: ""
-    })
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ""
-    }
+    setProductForm({ ...productForm, image: "", imageFile: null })
+    if (fileInputRef.current) fileInputRef.current.value = ""
   }
 
   const addSize = () => {
     if (productForm.newSize.trim()) {
-      setProductForm({
-        ...productForm,
-        sizes: [...productForm.sizes, productForm.newSize.trim()],
-        newSize: ""
-      })
+      setProductForm({ ...productForm, sizes: [...productForm.sizes, productForm.newSize.trim()], newSize: "" })
     }
   }
-
   const removeSize = (index: number) => {
     const newSizes = [...productForm.sizes]
     newSizes.splice(index, 1)
@@ -344,14 +275,9 @@ export default function ProductsPage() {
 
   const addColor = () => {
     if (productForm.newColor.trim()) {
-      setProductForm({
-        ...productForm,
-        colors: [...productForm.colors, productForm.newColor.trim()],
-        newColor: ""
-      })
+      setProductForm({ ...productForm, colors: [...productForm.colors, productForm.newColor.trim()], newColor: "" })
     }
   }
-
   const removeColor = (index: number) => {
     const newColors = [...productForm.colors]
     newColors.splice(index, 1)
@@ -360,7 +286,7 @@ export default function ProductsPage() {
 
   const getTotalProducts = () => products.length
   const getTotalValue = () => products.reduce((total, product) => total + product.price, 0)
-  const getInStockCount = () => products.filter(product => product.inStock).length
+  const getinstockCount = () => products.filter(product => product.instock).length
 
   if (loading) {
     return (
@@ -542,12 +468,12 @@ export default function ProductsPage() {
                   
                   <div className="flex items-center space-x-2 space-x-reverse">
                     <Switch
-                      id="inStock"
-                      checked={productForm.inStock}
-                      onCheckedChange={(checked) => setProductForm({...productForm, inStock: checked})}
+                      id="instock"
+                      checked={productForm.instock}
+                      onCheckedChange={(checked) => setProductForm({...productForm, instock: checked})}
                       className="data-[state=checked]:bg-amber-500"
                     />
-                    <Label htmlFor="inStock" className="text-gray-300">Produit disponible</Label>
+                    <Label htmlFor="instock" className="text-gray-300">Produit disponible</Label>
                   </div>
                   
                   <div className="space-y-2">
@@ -670,7 +596,7 @@ export default function ProductsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-400">Produits en stock</p>
-                  <p className="text-2xl font-bold text-amber-400">{getInStockCount()}</p>
+                  <p className="text-2xl font-bold text-amber-400">{getinstockCount()}</p>
                 </div>
                 <div className="p-3 bg-blue-500/10 rounded-full">
                   <TrendingUp className="h-6 w-6 text-blue-400" />
@@ -736,13 +662,13 @@ export default function ProductsPage() {
                 <div className="flex justify-between items-start mb-2">
                   <CardTitle className="text-lg text-white">{product.name}</CardTitle>
                   <Badge 
-                    variant={product.inStock ? "default" : "destructive"} 
-                    className={product.inStock 
+                    variant={product.instock ? "default" : "destructive"} 
+                    className={product.instock 
                       ? "text-green-300 bg-green-500/20 border-green-500/30" 
                       : "text-red-300 bg-red-500/20 border-red-500/30"
                     }
                   >
-                    {product.inStock ? "Disponible" : "Non disponible"}
+                    {product.instock ? "Disponible" : "Non disponible"}
                   </Badge>
                 </div>
                 
@@ -784,7 +710,7 @@ export default function ProductsPage() {
                   </div>
                   
                   <span className="text-xs text-gray-500">
-                    {new Date(product.createdAt).toLocaleDateString('fr-FR')}
+                    {new Date(product.createdat).toLocaleDateString('fr-FR')}
                   </span>
                 </div>
               </CardContent>
