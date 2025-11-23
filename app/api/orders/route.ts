@@ -1,143 +1,234 @@
-// app/api/orders/route.ts
-import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@/utils/supabase/server";
 
-
-
-
-// GET - جلب جميع الطلبات
+// -------------------------
+// GET /api/orders
+// -------------------------
 export async function GET() {
-  // try {
-  //   const orders = await prisma.order.findMany({
-  //     include: {
-  //       items: true,
-  //     },
-  //     orderBy: {
-  //       createdAt: 'desc',
-  //     },
-  //   })
+  const supabase = await createClient();
 
-  //   return NextResponse.json({ success: true, orders })
-  // } catch (error) {
-  //   console.error('Error fetching orders:', error)
-  //   return NextResponse.json(
-  //     { success: false, error: 'Failed to fetch orders' },
-  //     { status: 500 }
-  //   )
-  // }
-  console.log('ddd')
+  try {
+    const { data: orders, error } = await supabase
+  .from("order")
+  .select(`
+    *,
+    orderitem (*)
+  `)
+  .order("createdat", { ascending: false });
+
+
+    if (error) {
+      throw error;
+    } 
+
+    return NextResponse.json({ success: true, orders });
+  } catch (error: any) {
+    console.error("Error fetching orders:", error);
+    return NextResponse.json(
+      { success: false, error: "Failed to fetch orders" },
+      { status: 500 }
+    );
+  }
 }
 
-// PUT - تحديث حالة الطلب
-export async function PUT(request: NextRequest) {
-  // try {
-  //   const body = await request.json()
-  //   const { orderId, status } = body
+// -------------------------
+// POST /api/orders
+// -------------------------
+// export async function POST(request: NextRequest) {
+//   const supabase = await createClient();
 
-  //   const order = await prisma.order.update({
-  //     where: { id: orderId },
-  //     data: { status },
-  //   })
+//   try {
+//     const body = await request.json();
+//     const { customerInfo, cartItems, total } = body;
 
-  //   return NextResponse.json({ success: true, order })
-  // } catch (error) {
-  //   console.error('Error updating order:', error)
-  //   return NextResponse.json(
-  //     { success: false, error: 'Failed to update order' },
-  //     { status: 500 }
-  //   )
-  // }
-    console.log('ddd')
+//     if (!customerInfo?.name || !customerInfo?.phone || !customerInfo?.address) {
+//       return NextResponse.json(
+//         { success: false, error: "البيانات المطلوبة غير مكتملة" },
+//         { status: 400 }
+//       );
+//     }
 
-}
+//     // إنشاء الطلب مع العناصر
+//     const { data: order, error } = await supabase
+//       .from("order")
+//       .insert({
+//         customername: customerInfo.name,
+//         customerphone: customerInfo.phone,
+//         customeremail: customerInfo.email || "",
+//         customeraddress: customerInfo.address,
+//         total: total,
+//         status: "PENDING",
+//         items: cartItems.map((item: any) => ({
+//           name: item.name,
+//           brand: item.productbrand,
+//           price: item.price,
+//           quantity: item.quantity,
+//           selected_size: item.selectedSize || "",
+//           selected_color: item.selectedColor || "",
+//         })),
+//       })
+//       .select()
+//       .single();
 
+//     if (error) {
+//       throw error;
+//     }
 
-
-
-
+//     return NextResponse.json({
+//       success: true,
+//       orderId: order.id,
+//       message: "تم تأكيد الطلب بنجاح",
+//     });
+//   } catch (error: any) {
+//     console.error("Error creating order:", error);
+//     return NextResponse.json(
+//       { success: false, error: "فشل في إنشاء الطلب" },
+//       { status: 500 }
+//     );
+//   }
+// }
 export async function POST(request: NextRequest) {
-  // try {
-  //   const body = await request.json()
-  //   const { customerInfo, cartItems, total } = body
+  const supabase = await createClient();
 
-  //   // التحقق من البيانات المطلوبة
-  //   if (!customerInfo?.name || !customerInfo?.phone || !customerInfo?.address) {
-  //     return NextResponse.json(
-  //       { success: false, error: 'البيانات المطلوبة غير مكتملة' },
-  //       { status: 400 }
-  //     )
-  //   }
+  try {
+    const body = await request.json();
+    const { customerInfo, cartItems, total } = body;
 
-  //   const order = await prisma.order.create({
-  //     data: {
-  //       customerName: customerInfo.name,
-  //       customerPhone: customerInfo.phone,
-  //       customerEmail: customerInfo.email || '',
-  //       customerAddress: customerInfo.address,
-  //       total: total,
-  //       status: 'PENDING', 
-  //       items: {
-  //         create: cartItems.map((item: any) => ({
-  //           productName: item.name,
-  //           productBrand: item.brand,
-  //           productPrice: item.price,
-  //           quantity: item.quantity,
-  //           selectedSize: item.selectedSize || '',
-  //           selectedColor: item.selectedColor || '',
-  //         })),
-  //       },
-  //     },
-  //   })
+    if (!customerInfo?.name || !customerInfo?.phone || !customerInfo?.address) {
+      return NextResponse.json(
+        { success: false, error: "البيانات المطلوبة غير مكتملة" },
+        { status: 400 }
+      );
+    }
 
-  //   return NextResponse.json({ 
-  //     success: true, 
-  //     orderId: order.id,
-  //     message: 'تم تأكيد الطلب بنجاح'
-  //   })
-  // } catch (error) {
-  //   console.error('Error creating order:', error)
-  //   return NextResponse.json(
-  //     { success: false, error: 'فشل في إنشاء الطلب' },
-  //     { status: 500 }
-  //   )
-  // }
-    console.log('ddd')
+    // 1️⃣ إنشاء الطلب
+    const { data: order, error: orderError } = await supabase
+      .from("order")
+      .insert({
+        customername: customerInfo.name,
+        customerphone: customerInfo.phone,
+        customeremail: customerInfo.email || "",
+        customeraddress: customerInfo.address,
+        total: total,
+        status: "PENDING",
+      })
+      .select()
+      .single();
 
+    if (orderError) throw orderError;
+
+    // 2️⃣ إنشاء العناصر في جدول orderitem
+    const orderItemsPayload = cartItems.map((item: any) => ({
+      orderid: order.id,
+      productname: item.name,
+      productbrand: item.brand,
+      productprice: item.price,
+      quantity: item.quantity,
+      selectedsize: item.selectedSize || "",
+      selectedcolor: item.selectedColor || "",
+    }));
+
+    const { error: itemsError } = await supabase
+      .from("orderitem")
+      .insert(orderItemsPayload);
+
+    if (itemsError) throw itemsError;
+
+    return NextResponse.json({
+      success: true,
+      orderId: order.id,
+      message: "تم تأكيد الطلب بنجاح",
+    });
+  } catch (error: any) {
+    console.error("Error creating order:", error);
+    return NextResponse.json(
+      { success: false, error: "فشل في إنشاء الطلب" },
+      { status: 500 }
+    );
+  }
 }
 
+
+// -------------------------
+// PUT /api/orders
+// -------------------------
+export async function PUT(request: NextRequest) {
+  const supabase = await createClient();
+
+  try {
+    const body = await request.json();
+    const { orderId, status } = body;
+
+    if (!orderId || !status) {
+      return NextResponse.json(
+        { success: false, error: "معرف الطلب والحالة مطلوبان" },
+        { status: 400 }
+      );
+    }
+
+    const { data, error } = await supabase
+      .from("order")
+      .update({ status })
+      .eq("id", orderId)
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    return NextResponse.json({ success: true, order: data });
+  } catch (error: any) {
+    console.error("Error updating order:", error);
+    return NextResponse.json(
+      { success: false, error: "Failed to update order" },
+      { status: 500 }
+    );
+  }
+}
+
+// -------------------------
+// DELETE /api/orders
+// -------------------------
 export async function DELETE(request: NextRequest) {
-  // try {
-  //   const body = await request.json()
-  //   const { orderId } = body
+  const supabase = await createClient();
 
-  //   if (!orderId) {
-  //     return NextResponse.json(
-  //       { success: false, error: 'معرف الطلب مطلوب' },
-  //       { status: 400 }
-  //     )
-  //   }
+  try {
+    const body = await request.json();
+    const { orderId } = body;
 
-  //   // حذف العناصر المرتبطة أولاً بسبب قيود المفتاح الخارجي
-  //   await prisma.orderItem.deleteMany({
-  //     where: { orderId: orderId }
-  //   })
+    if (!orderId) {
+      return NextResponse.json(
+        { success: false, error: "معرف الطلب مطلوب" },
+        { status: 400 }
+      );
+    }
 
-  //   // ثم حذف الطلب نفسه
-  //   await prisma.order.delete({
-  //     where: { id: orderId }
-  //   })
+    // حذف العناصر المرتبطة أولاً
+    const { error: delItemsError } = await supabase
+      .from("orderitem")
+      .delete()
+      .eq("orderid", orderId);
 
-  //   return NextResponse.json({ 
-  //     success: true, 
-  //     message: 'تم حذف الطلب بنجاح' 
-  //   })
-  // } catch (error) {
-  //   console.error('Error deleting order:', error)
-  //   return NextResponse.json(
-  //     { success: false, error: 'فشل في حذف الطلب' },
-  //     { status: 500 }
-  //   )
-  // }
-    console.log('ddd')
+    if (delItemsError) throw delItemsError;
 
+    // حذف الطلب نفسه
+    const { error: delOrderError } = await supabase
+      .from("order")
+      .delete()
+      .eq("id", orderId);
+
+    if (delOrderError) throw delOrderError;
+
+    return NextResponse.json({
+      success: true,
+      message: "تم حذف الطلب بنجاح",
+    });
+  } catch (error: any) {
+    console.error("Error deleting order:", error);
+    return NextResponse.json(
+      { success: false, error: "فشل في حذف الطلب" },
+      { status: 500 }
+    );
+  }
 }

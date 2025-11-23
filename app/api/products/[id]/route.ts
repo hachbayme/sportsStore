@@ -3,10 +3,10 @@ import { createClient } from "@/utils/supabase/server";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
   const supabase = await createClient();
-  const { id } = params;
+  const { id } = context.params;
 
   const { data, error } = await supabase
     .from("product")
@@ -74,6 +74,7 @@ export async function PUT(
     );
   }
 }
+
 export async function DELETE(
   request: NextRequest,
   context: { params: { id: string } }
