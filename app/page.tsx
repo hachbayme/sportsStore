@@ -87,7 +87,7 @@ export default function HomePage() {
 
   return (
     <MainLayout>
-      <div className="min-h-screen bg-gray-900 text-white" dir= "ltr">
+      <div className="min-h-screen bg-gray-900 text-white">
         
         {/* Hero Section */}
         <HeroSection/>

@@ -11,7 +11,7 @@ interface MainLayoutProps {
 export default function MainLayout({ children }: MainLayoutProps) {
 
   return (
-    <div className="min-h-screen bg-background" dir={ "ltr"}>
+    <div className="min-h-screen bg-background">
       <Header />
       <main>{children}</main>
       <Footer/>

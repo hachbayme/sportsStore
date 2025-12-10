@@ -14,20 +14,48 @@ import { Search, Package, Plus, Edit, Trash2, Image as ImageIcon, XCircle, Box, 
 import { toast } from "sonner"
 import { supabase } from "@/lib/supabaseClient"
 import {uploadImage} from "@/lib/uploadImage";
+// استيراد React components
+import { Swiper, SwiperSlide } from "swiper/react";
+
+// استيراد Navigation من 'swiper' مباشرة
+import { Navigation } from 'swiper/modules';
+
+// ثم إضافتها إلى المصفوفة
+// استيراد CSS
+import "swiper/css";
+import "swiper/css/navigation";
+
+
+interface ProductImage {
+  id: number;
+  product_id: number; 
+  image_url: string;
+  position: number;
+}
+
+
 
 interface Product {
-  id: number
-  name: string
-  description: string
-  price: number
-  rating: number
-  brand: string
-  category: string
-  image: string | null
-  instock: boolean
-  sizes: string[]
-  colors: string[]
-  createdat: string
+  id: number;
+  name: string;
+  description: string;
+  price: number;
+  rating: number;
+  brand: string;
+  category: string;
+
+  // بدل image واحدة → مصفوفة من الصور
+  product_images: ProductImage[];
+
+  instock: boolean;
+  sizes: string[];
+  colors: string[];
+  createdat: string;
+  images?: ProductImage[];
+}
+
+interface ProductWithImages extends Product {
+  images: ProductImage[];
 }
 
 export default function ProductsPage() {
@@ -42,20 +70,26 @@ export default function ProductsPage() {
   const [uploadingImage, setUploadingImage] = useState(false)
 
   // Formulaire produit
-  const [productForm, setProductForm] = useState({
-    name: "",
-    description: "",
-    price: 0,
-    brand: "",
-    category: "",
-    image: "",
-    instock: true,
-    sizes: [] as string[],
-    colors: [] as string[],
-    newSize: "",
-    newColor: "",
-    imageFile: null as File | null
-  })
+const [productForm, setProductForm] = useState({
+  name: "",
+  description: "",
+  price: 0,
+  brand: "",
+  category: "",
+  instock: true,
+  sizes: [] as string[],
+  colors: [] as string[],
+  newSize: "",
+  newColor: "",
+
+  // الملفات الجديدة التي سيتم رفعها
+  imagesFiles: [] as File[],
+
+  // الصور الموجودة مسبقاً في DB عند التعديل
+  existingImages: [] as { id: number; image_url: string; position: number }[],
+  newImageUrl: ""
+})
+
 
   useEffect(() => {
     fetchProducts()
@@ -65,23 +99,46 @@ export default function ProductsPage() {
     filterProducts()
   }, [products, productSearchTerm, activeCategory])
 
-  const fetchProducts = async () => {
-    setLoading(true)
-    try {
-      const { data, error } = await supabase
-        .from("product")
-        .select("*")
-        .order("createdat", { ascending: false })
 
-      if (error) throw error
-      setProducts(data as Product[])
-    } catch (error) {
-      console.error("Error fetching products:", error)
-      toast.error(error instanceof Error ? error.message : "Erreur lors du chargement des produits")
-    } finally {
-      setLoading(false)
-    }
+
+const fetchProducts = async () => {
+  setLoading(true);
+  try {
+    // جلب المنتجات
+    const { data: productsData, error: productError } = await supabase
+      .from("product")
+      .select("*")
+      .order("createdat", { ascending: false });
+
+    if (productError) throw productError;
+
+    const products = productsData as Product[];
+
+    // جلب كل الصور
+    const { data: imagesData, error: imagesError } = await supabase
+      .from("product_images")
+      .select("*");
+
+    if (imagesError) throw imagesError;
+
+    const images = imagesData as ProductImage[];
+
+    // دمج الصور مع المنتجات
+    const productsWithImages: ProductWithImages[] = products.map(product => ({
+      ...product,
+      images: images.filter(img => img.product_id === product.id)
+    }));
+
+    setProducts(productsWithImages);
+  } catch (error) {
+    console.error("Error fetching products:", error);
+    toast.error(error instanceof Error ? error.message : "Erreur lors du chargement des produits");
+  } finally {
+    setLoading(false);
   }
+};
+
+
 
   const filterProducts = () => {
     let filtered = products
@@ -102,87 +159,117 @@ export default function ProductsPage() {
     setFilteredProducts(filtered)
   }
 
-  // Upload image
-  // const uploadImage = async (file: File): Promise<string> => {
-  //   setUploadingImage(true)
-  //   try {
-  //     const formData = new FormData()
-  //     formData.append("file", file)
 
-  //     const response = await fetch("/api/upload", {
-  //       method: "POST",
-  //       body: formData
-  //     })
 
-  //     if (!response.ok) throw new Error("Échec du téléchargement de l'image")
 
-  //     const data = await response.json()
-  //     return data.url
-  //   } catch (error) {
-  //     console.error("Error uploading image:", error)
-  //     throw new Error("Échec du téléchargement de l'image")
-  //   } finally {
-  //     setUploadingImage(false)
-  //   }
-  // }
+const handleProductSubmit = async (e: React.FormEvent) => {
+  e.preventDefault()
+  try {
+    if (editingProduct) {
+      // تحديث المنتج الرئيسي
+      const { error } = await supabase
+        .from("product")
+        .update({
+          name: productForm.name,
+          description: productForm.description,
+          price: productForm.price,
+          brand: productForm.brand,
+          category: productForm.category,
+          instock: productForm.instock,
+          sizes: productForm.sizes,
+          colors: productForm.colors,
+          // updatedat: new Date().toISOString()
+        })
+        .eq("id", editingProduct.id)
 
-  // Ajouter ou modifier produit via Supabase
-  const handleProductSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    try {
-      let imageUrl = productForm.image
-      if (productForm.imageFile) {
-        imageUrl = await uploadImage(productForm.imageFile)
-      }
+      if (error) throw error
 
-      if (editingProduct) {
-        // Mise à jour
-        const { error } = await supabase
-          .from("product")
-          .update({
-            name: productForm.name,
-            description: productForm.description,
-            price: productForm.price,
-            brand: productForm.brand,
-            category: productForm.category,
-            image: imageUrl,
-            instock: productForm.instock,
-            sizes: productForm.sizes,
-            colors: productForm.colors
-          })
-          .eq("id", editingProduct.id)
+      
 
-        if (error) throw error
-        toast.success("Produit mis à jour avec succès")
-      } else {
-        // Ajout
-        const { error } = await supabase
-          .from("product")
-          .insert([{
-            name: productForm.name,
-            description: productForm.description,
-            price: productForm.price,
-            brand: productForm.brand,
-            category: productForm.category,
-            image: imageUrl,
-            instock: productForm.instock,
-            sizes: productForm.sizes,
-            colors: productForm.colors,
-            createdat: new Date().toISOString()
-          }])
+      // فقط إذا تم إضافة صور جديدة
+if (productForm.imagesFiles && productForm.imagesFiles.length > 0) {
+  // حذف الصور القديمة
+  const { error: deleteError } = await supabase
+    .from("product_images")
+    .delete()
+    .eq("product_id", editingProduct.id);
 
-        if (error) throw error
-        toast.success("Produit ajouté avec succès")
-      }
+  if (deleteError) throw deleteError;
 
-      setIsProductDialogOpen(false)
-      resetProductForm()
-      fetchProducts()
-    } catch (error) {
-      console.log("Error saving product:", error)
-      toast.error(error instanceof Error ? error.message : "Erreur lors de la sauvegarde du produit")
-    }
+  // رفع الصور الجديدة
+  for (const [index, file] of productForm.imagesFiles.entries()) {
+    const imageUrl = await uploadImage(file);
+    const { error: imgError } = await supabase
+      .from("product_images")
+      .insert({
+        product_id: editingProduct.id,
+        image_url: imageUrl,
+        position: index + 1
+      });
+
+    if (imgError) throw imgError;
   }
+}
+
+
+
+
+      // for (const file of productForm.imagesFiles) {
+      //   const imageUrl = await uploadImage(file)
+      //   const { error: imgError } = await supabase
+      //     .from("product_images")
+      //     .insert({
+      //       product_id: editingProduct.id,
+      //       image_url: imageUrl
+      //     })
+      //   if (imgError) throw imgError
+      // }
+
+      toast.success("Produit mis à jour avec succès")
+    } else {
+      // إضافة منتج جديد
+      const { data: newProduct, error } = await supabase
+        .from("product")
+        .insert([{
+          name: productForm.name,
+          description: productForm.description,
+          price: productForm.price,
+          brand: productForm.brand,
+          category: productForm.category,
+          instock: productForm.instock,
+          sizes: productForm.sizes,
+          colors: productForm.colors,
+          createdat: new Date().toISOString()
+        }])
+        .select()
+        .single()
+
+      if (error || !newProduct) throw error || new Error("Failed to create product")
+
+      for (const file of productForm.imagesFiles) {
+        const imageUrl = await uploadImage(file)
+        const { error: imgError } = await supabase
+          .from("product_images")
+          .insert({
+            product_id: newProduct.id,
+            image_url: imageUrl
+          })
+        if (imgError) throw imgError
+      }
+
+      toast.success("Produit ajouté avec succès")
+    }
+
+    setIsProductDialogOpen(false)
+    resetProductForm()
+    fetchProducts()
+  } catch (error) {
+    console.log("Error saving product:", error)
+    toast.error(error instanceof Error ? error.message : "Erreur lors de la sauvegarde du produit")
+  }
+}
+
+
 
   const deleteProduct = async (productId: number) => {
     if (!confirm("Êtes-vous sûr de vouloir supprimer ce produit ?")) return
@@ -201,67 +288,114 @@ export default function ProductsPage() {
     }
   }
 
-  const editProduct = (product: Product) => {
-    setEditingProduct(product)
-    setProductForm({
-      name: product.name,
-      description: product.description,
-      price: product.price,
-      brand: product.brand,
-      category: product.category,
-      image: product.image || "",
-      instock: product.instock,
-      sizes: product.sizes,
-      colors: product.colors,
-      newSize: "",
-      newColor: "",
-      imageFile: null
-    })
-    setIsProductDialogOpen(true)
-  }
+const editProduct = (product: Product) => {
+  setEditingProduct(product)
+  setProductForm({
+    name: product.name,
+    description: product.description,
+    price: product.price,
+    brand: product.brand,
+    category: product.category,
+    instock: product.instock,
+    sizes: product.sizes,
+    colors: product.colors,
+    newSize: "",
+    newColor: "",
+    
+    // الصور الجديدة التي سيرفعها المستخدم
+    imagesFiles: [],
 
-  const resetProductForm = () => {
-    setProductForm({
-      name: "",
-      description: "",
-      price: 0,
-      brand: "",
-      category: "",
-      image: "",
-      instock: true,
-      sizes: [],
-      colors: [],
-      newSize: "",
-      newColor: "",
-      imageFile: null
-    })
-    setEditingProduct(null)
-  }
+    // الصور الموجودة مسبقاً في DB
+    existingImages: product.product_images || [],
+    newImageUrl: ""
+  })
+  setIsProductDialogOpen(true)
+}
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      if (!file.type.startsWith("image/")) {
-        toast.error("Le fichier doit être une image")
-        return
-      }
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error("La taille de l'image doit être inférieure à 5MB")
-        return
-      }
-      setProductForm({ ...productForm, imageFile: file })
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        setProductForm(prev => ({ ...prev, image: e.target?.result as string }))
-      }
-      reader.readAsDataURL(file)
+const resetProductForm = () => {
+  setProductForm({
+    name: "",
+    description: "",
+    price: 0,
+    brand: "",
+    category: "",
+    instock: true,
+    sizes: [],
+    colors: [],
+    newSize: "",
+    newColor: "",
+
+    // إعادة تهيئة الصور
+    imagesFiles: [],
+    existingImages: [],
+    newImageUrl: ""
+  })
+  setEditingProduct(null)
+}
+
+
+const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const files = Array.from(e.target.files || [])
+
+  const validFiles = files.filter(file => {
+    if (!file.type.startsWith("image/")) {
+      toast.error("Le fichier doit être une image")
+      return false
     }
-  }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("La taille de l'image doit être inférieure à 5MB")
+      return false
+    }
+    return true
+  })
 
-  const removeUploadedImage = () => {
-    setProductForm({ ...productForm, image: "", imageFile: null })
-    if (fileInputRef.current) fileInputRef.current.value = ""
+  if (validFiles.length === 0) return
+
+  // إضافة الملفات الجديدة إلى imagesFiles
+  setProductForm(prev => ({
+    ...prev,
+    imagesFiles: [...prev.imagesFiles, ...validFiles]
+  }))
+
+  // إنشاء preview للصور الجديدة
+  validFiles.forEach(file => {
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      setProductForm(prev => ({
+        ...prev,
+        existingImages: [...prev.existingImages, {
+          id: Date.now(), // معرف مؤقت للعرض قبل الحفظ
+          image_url: e.target?.result as string,
+          position: 0
+        }]
+      }))
+    }
+    reader.readAsDataURL(file)
+  })
+}
+
+
+// حذف صورة بناءً على id أو index
+const removeUploadedImage = (imageId?: number, index?: number) => {
+  setProductForm(prev => ({
+    ...prev,
+    // إذا تم تمرير imageId → نحذف الصورة الموجودة مسبقاً في DB
+    existingImages: imageId
+      ? prev.existingImages.filter(img => img.id !== imageId)
+      : prev.existingImages,
+    
+    // إذا تم تمرير index → نحذف الصورة الجديدة التي لم تُرفع بعد
+    imagesFiles: index !== undefined
+      ? prev.imagesFiles.filter((_, i) => i !== index)
+      : prev.imagesFiles
+  }))
+
+  // إعادة تعيين input file إذا لم يتبق أي ملف
+  if (fileInputRef.current && (!productForm.imagesFiles.length || index !== undefined)) {
+    fileInputRef.current.value = ""
   }
+}
+
 
   const addSize = () => {
     if (productForm.newSize.trim()) {
@@ -301,7 +435,7 @@ export default function ProductsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 p-6" dir="rtl">
+    <div className="min-h-screen bg-gray-900 p-6">
       <div className="container mx-auto max-w-7xl">
         {/* Header */}
         <div className="mb-8">
@@ -405,6 +539,7 @@ export default function ProductsPage() {
                           id="image-upload"
                           type="file"
                           accept="image/*"
+                          multiple
                           onChange={handleImageUpload}
                           className="hidden"
                         />
@@ -419,44 +554,60 @@ export default function ProductsPage() {
                       </div>
                       
                       {/* Aperçu de l'image téléchargée */}
-                      {productForm.image && (
-                        <div className="mt-2">
-                          <p className="text-sm text-gray-400 mb-2">Aperçu de l'image:</p>
-                          <div className="relative w-32 h-32 border border-gray-600 rounded-md overflow-hidden mx-auto">
+                      <div className="flex flex-wrap gap-3 mt-2">
+                        {productForm.existingImages.map((img, index) => (
+                          <div key={img.id || index} className="relative w-32 h-32 border border-gray-600 rounded-md overflow-hidden">
                             <img 
-                              src={productForm.image} 
-                              alt="Aperçu de l'image" 
+                              src={img.image_url} 
+                              alt="Aperçu" 
                               className="w-full h-full object-cover"
                             />
                             <button
                               type="button"
-                              onClick={removeUploadedImage}
+                              onClick={() => removeUploadedImage(img.id, index)}
                               className="absolute top-1 left-1 bg-red-500/80 text-white rounded-full p-1"
                             >
                               <XCircle className="h-4 w-4" />
                             </button>
                           </div>
-                          <p className="text-xs text-center text-gray-500 mt-1">
-                            {productForm.imageFile?.name}
-                          </p>
-                        </div>
-                      )}
+                        ))}
+                      </div>
+
                       
                       {/* Ou saisir l'URL de l'image manuellement */}
                       <div className="mt-2">
-                        <Label htmlFor="image-url" className="text-gray-300">Ou entrez l'URL de l'image:</Label>
-                        <Input
-                          id="image-url"
-                          value={productForm.image}
-                          onChange={(e) => setProductForm({
-                            ...productForm, 
-                            image: e.target.value,
-                            imageFile: null
-                          })}
-                          placeholder="https://example.com/image.jpg"
-                          className="bg-gray-700 border-gray-600 text-white placeholder-gray-500 focus:border-amber-500 mt-1"
-                        />
-                      </div>
+  <Label htmlFor="image-url" className="text-gray-300">Ou entrez l'URL des images:</Label>
+  <div className="flex gap-2 mt-1">
+    <Input
+      id="image-url"
+      value={productForm.newImageUrl || ""}
+      onChange={(e) => setProductForm({
+        ...productForm,
+        newImageUrl: e.target.value
+      })}
+      placeholder="https://example.com/image.jpg"
+      className="flex-1 bg-gray-700 border-gray-600 text-white placeholder-gray-500 focus:border-amber-500"
+    />
+    <Button
+      type="button"
+      onClick={() => {
+        if (!productForm.newImageUrl) return
+        setProductForm(prev => ({
+          ...prev,
+          existingImages: [
+            ...prev.existingImages,
+            { id: Date.now(), image_url: prev.newImageUrl, position: prev.existingImages.length }
+          ],
+          newImageUrl: ""
+        }))
+      }}
+      className="bg-amber-500/10 text-amber-300 border-amber-500/30 hover:bg-amber-500/20 hover:text-amber-200"
+    >
+      Ajouter URL
+    </Button>
+  </div>
+                    </div>
+
                     </div>
                     
                     {uploadingImage && (
@@ -643,20 +794,34 @@ export default function ProductsPage() {
           {filteredProducts.map((product) => (
             <Card key={product.id} className="bg-gray-800 border-gray-700 shadow-lg hover:shadow-xl transition-all duration-300 hover:border-amber-500/30 overflow-hidden">
               <div className="h-48 bg-gray-700 overflow-hidden">
-                {product.image ? (
-                  <img 
-                    src={product.image} 
-                    alt={product.name}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      e.currentTarget.src = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIGZpbGw9IiMzNzM3MzciLz48cGF0aCBkPSJNMzYgMjhIMjhWMzZIMzZWMjhaTTM4IDI2VjM4SDI2VjI2SDM4Wk0yNCA0MEg0MFYyNEgyNFY0MFpNNDIgNDJIMjJWNDJWMjJINDJWMjJWMjJINDJWMzZWMzZINDJWNDJaTTIwIDQ0SDQ0VjIwSDIwVjQ0WiIgZmlsbD0iIzhBOEE4QSIvPjwvc3ZnPg=="
-                    }}
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-gray-700">
-                    <ImageIcon className="h-12 w-12 text-gray-500" />
-                  </div>
-                )}
+                {product.images && product.images.length > 0 ? (
+            <Swiper
+      modules={[Navigation]}
+      navigation
+      spaceBetween={0}
+      slidesPerView={1}
+      className="h-full"
+    >
+      {product.images.map((img, index) => (
+        <SwiperSlide key={index}>
+          <img
+            src={img.image_url}
+            alt={`${product.name} ${index + 1}`}
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              e.currentTarget.src =
+                "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIGZpbGw9IiMzNzM3MzciLz48cGF0aCBkPSJNMzYgMjhIMjhWMzZIMzZWMjhaTTM4IDI2VjM4SDI2VjI2SDM4Wk0yNCA0MEg0MFYyNEgyNFY0MFpNNDIgNDJIMjJWNDJWMjJINDJWMjJWMjJINDJWMzZWMzZINDJWNDJaTTIwIDQ0SDQ0VjIwSDIwVjQ0WiIgZmlsbD0iIzhBOEE4QSIvPjwvc3ZnPg==";
+            }}
+          />
+        </SwiperSlide>
+              ))}
+            </Swiper>
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-gray-700">
+              <ImageIcon className="h-12 w-12 text-gray-500" />
+            </div>
+          )}
+
               </div>
               
               <CardContent className="p-4">
@@ -716,6 +881,7 @@ export default function ProductsPage() {
                 </div>
               </CardContent>
             </Card>
+
           ))}
         </div>
 

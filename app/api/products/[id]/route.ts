@@ -5,12 +5,20 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+
   const supabase = await createClient();
   const { id } = params;
 
   const { data, error } = await supabase
     .from("product")
-    .select("*")
+    .select(`
+      *,
+      product_images (
+        id,
+        image_url,
+        position
+      )
+    `)
     .eq("id", id)
     .single();
 
@@ -20,6 +28,7 @@ export async function GET(
 
   return NextResponse.json(data);
 }
+
 
 export async function PUT(
   request: NextRequest,

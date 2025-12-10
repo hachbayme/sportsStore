@@ -34,7 +34,7 @@ export default function AdminDashboard() {
 
   return (
     <AdminProtection>
-      <div className="min-h-screen bg-gray-900 text-white" dir="rtl">
+      <div className="min-h-screen bg-gray-900 text-white" >
         {/* Barre supérieure au lieu de la barre latérale */}
         <header className="bg-gray-800 border-b border-gray-700 sticky top-0 z-10">
           <div className="container mx-auto px-4">
@@ -120,7 +120,6 @@ export default function AdminDashboard() {
           expand={true}
           richColors
           closeButton
-          dir="rtl"
         />
       </div>
     </AdminProtection>

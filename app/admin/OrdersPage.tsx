@@ -195,7 +195,7 @@ const fetchOrders = async () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 p-6" dir="rtl">
+    <div className="min-h-screen bg-gray-900 p-6">
       <div className="container mx-auto max-w-7xl">
         {/* Header */}
         <div className="mb-8">
