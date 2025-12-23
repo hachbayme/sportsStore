@@ -12,12 +12,16 @@ import AdminSettings from "./settings/page"
 export default function AdminDashboard() {
   const [activePage, setActivePage] = useState<"orders" | "products" | "settings" | "home">("orders")
 
+  // const handleLogout = () => {
+  //   // Effacer les données de session
+  //   sessionStorage.removeItem('adminAuthenticated');
+  //   // Recharger la page pour retourner à la page de connexion
+  //   window.location.href = '/admin';
+  // }
   const handleLogout = () => {
-    // Effacer les données de session
-    sessionStorage.removeItem('adminAuthenticated');
-    // Recharger la page pour retourner à la page de connexion
-    window.location.href = '/admin';
-  }
+  sessionStorage.removeItem('adminAuthenticated'); // أو حذف token
+  window.location.href = '/admin'; // إعادة التوجيه للصفحة المحمية
+}
 
   const renderPage = () => {
     switch (activePage) {

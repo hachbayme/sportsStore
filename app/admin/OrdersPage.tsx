@@ -25,9 +25,9 @@ interface Order {
 
 interface OrderItem {
   id: number
-  productName: string
-  productBrand: string
-  productPrice: number
+  productname: string
+  productbrand: string
+  productprice: number
   quantity: number
   selectedSize?: string
   selectedColor?: string
@@ -362,8 +362,8 @@ const fetchOrders = async () => {
                        {order.items?.map((item) => (
                           <div key={item.id} className="flex justify-between items-start p-2 bg-gray-700/50 rounded-lg">
                             <div className="flex-1">
-                              <p className="font-medium text-sm text-white">{item.productName}</p>
-                              <p className="text-xs text-gray-400">{item.productBrand}</p>
+                              <p className="font-medium text-sm text-white">{item.productname}</p>
+                              <p className="text-xs text-gray-400">{item.productbrand}</p>
                               {item.selectedSize && (
                                 <p className="text-xs text-gray-500">Taille: {item.selectedSize}</p>
                               )}
@@ -372,8 +372,8 @@ const fetchOrders = async () => {
                               )}
                             </div>
                             <div className="text-left">
-                              <p className="text-sm text-gray-300">{item.quantity} × {item.productPrice} DH</p>
-                              <p className="font-medium text-sm text-amber-400">{item.quantity * item.productPrice} DH</p>
+                              <p className="text-sm text-gray-300">{item.quantity} × {item.productprice} DH</p>
+                              <p className="font-medium text-sm text-amber-400">{item.quantity * item.productprice} DH</p>
                             </div>
                           </div>
                         ))}

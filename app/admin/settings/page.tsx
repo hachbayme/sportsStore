@@ -17,48 +17,46 @@ export default function AdminSettings() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
 
-  const handleChangePassword = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
+const handleChangePassword = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setIsLoading(true);
 
-    // Vérification des entrées
-    if (newPassword !== confirmPassword) {
-      toast.error("Le nouveau mot de passe ne correspond pas")
-      setIsLoading(false)
-      return
-    }
-
-    if (newPassword.length < 6) {
-      toast.error("Le mot de passe doit contenir au moins 6 caractères")
-      setIsLoading(false)
-      return
-    }
-
-    try {
-      // Ici, la requête sera envoyée au serveur pour changer le mot de passe
-      // Dans cet exemple, nous utiliserons localStorage pour le stockage local
-      const storedPassword = localStorage.getItem('adminPassword')
-      
-      if (storedPassword !== currentPassword) {
-        toast.error("Le mot de passe actuel est incorrect")
-        setIsLoading(false)
-        return
-      }
-
-      // Changer le mot de passe
-      localStorage.setItem('adminPassword', newPassword)
-      toast.success("Mot de passe changé avec succès")
-      
-      // Effacer les champs
-      setCurrentPassword('')
-      setNewPassword('')
-      setConfirmPassword('')
-    } catch (err) {
-      toast.error("Erreur lors du changement du mot de passe")
-    } finally {
-      setIsLoading(false)
-    }
+  if (newPassword !== confirmPassword) {
+    toast.error("Le nouveau mot de passe ne correspond pas");
+    setIsLoading(false);
+    return;
   }
+
+  try {
+    // إرسال الطلب للسيرفر لتغيير كلمة المرور
+    const res = await fetch("/api/admin/change-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      toast.error(data.error || "Erreur inconnue");
+      setIsLoading(false);
+      return;
+    }
+
+    toast.success("Mot de passe changé avec succès");
+
+    // إعادة تعيين الحقول
+    setCurrentPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
+
+  } catch (err) {
+    toast.error("Erreur de connexion au serveur");
+  } finally {
+    setIsLoading(false);
+  }
+}
+
 
   return (
     <div className="p-6 bg-gray-900 min-h-screen">
