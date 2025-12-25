@@ -703,7 +703,7 @@ const removeUploadedImage = (imageId?: number, index?: number) => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <Card className="bg-gray-800 border-gray-700 shadow-lg">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -723,7 +723,7 @@ const removeUploadedImage = (imageId?: number, index?: number) => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-400">Valeur totale</p>
-                  <p className="text-2xl font-bold text-amber-400">{getTotalValue()} DH</p>
+                  <p className="text-2xl font-bold text-amber-400">{getTotalValue().toFixed(2)} DH</p>
                 </div>
                 <div className="p-3 bg-green-500/10 rounded-full">
                   <DollarSign className="h-6 w-6 text-green-400" />
@@ -732,7 +732,7 @@ const removeUploadedImage = (imageId?: number, index?: number) => {
             </CardContent>
           </Card>
 
-          <Card className="bg-gray-800 border-gray-700 shadow-lg">
+          {/* <Card className="bg-gray-800 border-gray-700 shadow-lg">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -744,7 +744,7 @@ const removeUploadedImage = (imageId?: number, index?: number) => {
                 </div>
               </div>
             </CardContent>
-          </Card>
+          </Card> */}
         </div>
 
         {/* Recherche de produits */}
