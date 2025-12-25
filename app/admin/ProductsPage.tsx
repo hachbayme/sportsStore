@@ -617,17 +617,6 @@ const removeUploadedImage = (imageId?: number, index?: number) => {
                       </div>
                     )}
                   </div>
-                  
-                  <div className="flex items-center space-x-2 space-x-reverse">
-                    <Switch
-                      id="instock"
-                      checked={productForm.instock}
-                      onCheckedChange={(checked) => setProductForm({...productForm, instock: checked})}
-                      className="data-[state=checked]:bg-amber-500"
-                    />
-                    <Label htmlFor="instock" className="text-gray-300">Produit disponible</Label>
-                  </div>
-                  
                   <div className="space-y-2">
                     <Label className="text-gray-300">Tailles disponibles</Label>
                     <div className="flex gap-2">

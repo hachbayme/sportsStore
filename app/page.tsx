@@ -180,11 +180,12 @@ export default function HomePage() {
       
       <div className="text-center mb-12">
         <h2 className="text-3xl font-bold text-white mb-4">
-          Produits Populaires
-        </h2>
-        <p className="text-gray-400 max-w-2xl mx-auto">
-          Les produits les plus appréciés par nos clients
-        </p>
+    Aperçu de nos articles sportifs
+  </h2>
+  <p className="text-gray-400 max-w-2xl mx-auto">
+    Découvrez une sélection de vêtements et chaussures de sport adaptés à tous les styles
+  </p>
+
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

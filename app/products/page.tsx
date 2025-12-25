@@ -277,7 +277,7 @@ const filteredProducts = useMemo(() => {
                 </Select>
 
                 {/* In Stock Filter */}
-                <div className="flex items-center gap-2">
+                {/* <div className="flex items-center gap-2">
                   <Checkbox
                     id="inStock"
                     checked={filters.inStock}
@@ -287,7 +287,7 @@ const filteredProducts = useMemo(() => {
                   <Label htmlFor="inStock" className="text-sm cursor-pointer text-gray-300">
                     En stock
                   </Label>
-                </div>
+                </div> */}
 
                 {/* Toggle Advanced Filters */}
                 <Button
