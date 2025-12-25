@@ -20,7 +20,7 @@ export async function POST(req: Request) {
     if (error || !data) {
       return NextResponse.json({ error: "Aucun administrateur trouvé" }, { status: 401 });
     }
-
+   
     // التحقق من كلمة المرور
     const isValid = bcrypt.compareSync(password, data.password_hash);
 
